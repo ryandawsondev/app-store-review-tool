@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>App Store Scraper</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #0e0e11;
+        --surface: #17171b;
+        --surface2: #1f1f25;
+        --border: #2a2a32;
+        --accent: #7c6af7;
+        --accent-dim: #3d3578;
+        --text: #e8e8f0;
+        --muted: #7a7a90;
+        --star: #f5c542;
+        --green: #3dd68c;
+        --red: #f4615c;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+      }
+
+      header {
+        border-bottom: 1px solid var(--border);
+        padding: 1.25rem 2rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      header h1 {
+        font-size: 1.1rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      header .badge {
+        font-family: "Inter", sans-serif;
+        font-size: 0.65rem;
+        background: var(--accent-dim);
+        color: var(--accent);
+        padding: 3px 8px;
+        border-radius: 4px;
+        letter-spacing: 0.05em;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        min-height: calc(100vh - 64px);
+      }
+
+      .sidebar {
+        border-right: 1px solid var(--border);
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      .section-label {
+        font-family: "Inter", sans-serif;
+        font-size: 0.65rem;
+        color: var(--muted);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        margin-bottom: 0.5rem;
+      }
+
+      .search-box {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      input[type="text"] {
+        flex: 1;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        color: var(--text);
+        font-family: "Inter", sans-serif;
+        font-size: 0.875rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        outline: none;
+        transition: border-color 0.15s;
+      }
+
+      input[type="text"]:focus {
+        border-color: var(--accent);
+      }
+
+      input[type="text"]::placeholder {
+        color: var(--muted);
+      }
+
+      button {
+        font-family: "Inter", sans-serif;
+        font-weight: 600;
+        font-size: 0.8rem;
+        cursor: pointer;
+        border: none;
+        border-radius: 8px;
+        transition: all 0.15s;
+      }
+
+      .btn-primary {
+        background: var(--accent);
+        color: #fff;
+        padding: 0.5rem 1rem;
+        white-space: nowrap;
+        border-radius: 8px;
+      }
+
+      .btn-primary:hover {
+        opacity: 0.85;
+      }
+      .btn-primary:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
+      .btn-ghost {
+        background: var(--surface2);
+        color: var(--text);
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border);
+      }
+
+      .btn-ghost:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      .app-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .app-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.625rem 0.75rem;
+        border-radius: 10px;
+        cursor: pointer;
+        border: 1px solid transparent;
+        transition: all 0.15s;
+      }
+
+      .app-item:hover {
+        background: var(--surface2);
+        border-color: var(--border);
+      }
+      .app-item.active {
+        background: var(--surface2);
+        border-color: var(--accent);
+      }
+
+      .app-item img {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        flex-shrink: 0;
+        background: var(--surface2);
+      }
+
+      .app-item .app-info {
+        min-width: 0;
+      }
+
+      .app-item .app-name {
+        font-size: 0.85rem;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .app-item .app-dev {
+        font-size: 0.72rem;
+        color: var(--muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .main {
+        padding: 2rem;
+        overflow-y: auto;
+      }
+
+      .empty-state {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        color: var(--muted);
+        padding-top: 4rem;
+      }
+
+      .empty-state .icon {
+        font-size: 2.5rem;
+        opacity: 0.4;
+      }
+      .empty-state p {
+        font-size: 0.9rem;
+      }
+
+      .app-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+      }
+
+      .app-header img {
+        width: 72px;
+        height: 72px;
+        border-radius: 16px;
+        flex-shrink: 0;
+      }
+
+      .app-header .app-title {
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+      .app-header .app-subtitle {
+        font-size: 0.875rem;
+        color: var(--muted);
+        margin-top: 0.25rem;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 2rem;
+      }
+
+      .stat-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem;
+      }
+
+      .stat-card .stat-label {
+        font-family: "Inter", sans-serif;
+        font-size: 0.65rem;
+        color: var(--muted);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 0.4rem;
+      }
+
+      .stat-card .stat-value {
+        font-size: 1.4rem;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+      }
+
+      .stat-card .stat-value.accent {
+        color: var(--accent);
+      }
+
+      .tabs {
+        display: flex;
+        gap: 0.25rem;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .tab {
+        background: none;
+        color: var(--muted);
+        padding: 0.5rem 1rem;
+        border-radius: 0;
+        font-size: 0.85rem;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+      }
+
+      .tab.active {
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+      }
+      .tab:hover {
+        color: var(--text);
+      }
+
+      .reviews-controls {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.25rem;
+      }
+
+      select {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        color: var(--text);
+        font-family: "Inter", sans-serif;
+        font-size: 0.8rem;
+        padding: 0.4rem 0.75rem;
+        border-radius: 8px;
+        outline: none;
+        cursor: pointer;
+      }
+
+      .reviews-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .review-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.125rem;
+      }
+
+      .review-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+      }
+
+      .reviewer {
+        font-size: 0.875rem;
+        font-weight: 600;
+      }
+      .review-date {
+        font-family: "Inter", sans-serif;
+        font-size: 0.7rem;
+        color: var(--muted);
+      }
+
+      .stars {
+        color: var(--star);
+        font-size: 0.85rem;
+        letter-spacing: 1px;
+      }
+
+      .review-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin: 0.5rem 0 0.25rem;
+      }
+      .review-body {
+        font-size: 0.85rem;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .version-badge {
+        font-family: "Inter", sans-serif;
+        font-size: 0.65rem;
+        background: var(--surface2);
+        color: var(--muted);
+        padding: 2px 7px;
+        border-radius: 4px;
+        border: 1px solid var(--border);
+      }
+
+      .pagination {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+        justify-content: center;
+      }
+
+      .page-info {
+        font-family: "Inter", sans-serif;
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+
+      .spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid var(--border);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+        vertical-align: middle;
+        margin-right: 6px;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .error-msg {
+        background: #2a1515;
+        border: 1px solid #5a2020;
+        color: var(--red);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        font-size: 0.85rem;
+        margin-bottom: 1rem;
+      }
+
+      .rating-bar-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.4rem;
+        font-size: 0.8rem;
+      }
+
+      .rating-bar-row .bar-label {
+        font-family: "Inter", sans-serif;
+        font-size: 0.7rem;
+        color: var(--muted);
+        width: 20px;
+        text-align: right;
+      }
+
+      .bar-track {
+        flex: 1;
+        height: 6px;
+        background: var(--surface2);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+
+      .bar-fill {
+        height: 100%;
+        background: var(--accent);
+        border-radius: 3px;
+        transition: width 0.4s ease;
+      }
+
+      .bar-count {
+        font-family: "Inter", sans-serif;
+        font-size: 0.7rem;
+        color: var(--muted);
+        width: 36px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>App Store Scraper</h1>
+      <span class="badge">iOS · GB Store</span>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <div>
+          <div class="section-label">Search Apps</div>
+          <div class="search-box">
+            <input
+              type="text"
+              id="search-input"
+              placeholder="e.g. Spotify, Duolingo…"
+            />
+            <button class="btn-primary" id="search-btn" onclick="searchApps()">
+              Go
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-label">Results</div>
+          <div class="app-list" id="app-list">
+            <p style="font-size: 0.8rem; color: var(--muted)">
+              Search for an app above.
+            </p>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main" id="main-panel">
+        <div class="empty-state">
+          <div class="icon">⬡</div>
+          <p>Search for an app to get started</p>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const API = "http://localhost:3001/api";
+      let currentApp = null;
+      let currentPage = 1;
+      let currentSort = "recent";
+
+      document
+        .getElementById("search-input")
+        .addEventListener("keydown", (e) => {
+          if (e.key === "Enter") searchApps();
+        });
+
+      async function searchApps() {
+        const term = document.getElementById("search-input").value.trim();
+        if (!term) return;
+        const btn = document.getElementById("search-btn");
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span>';
+        const list = document.getElementById("app-list");
+        list.innerHTML =
+          '<p style="font-size:0.8rem;color:var(--muted)"><span class="spinner"></span> Searching…</p>';
+        try {
+          const res = await fetch(
+            `${API}/search?term=${encodeURIComponent(term)}&num=10`,
+          );
+          const data = await res.json();
+          if (data.error) throw new Error(data.error);
+          renderAppList(data);
+        } catch (e) {
+          list.innerHTML = `<div class="error-msg">${e.message}</div>`;
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "Go";
+        }
+      }
+
+      function renderAppList(apps) {
+        const list = document.getElementById("app-list");
+        if (!apps.length) {
+          list.innerHTML =
+            '<p style="font-size:0.8rem;color:var(--muted)">No results found.</p>';
+          return;
+        }
+        list.innerHTML = apps
+          .map(
+            (app) => `
+      <div class="app-item" onclick="loadApp('${app.id}')" id="item-${app.id}">
+        <img src="${app.icon}" alt="" onerror="this.style.opacity=0.3" />
+        <div class="app-info">
+          <div class="app-name">${escHtml(app.title)}</div>
+          <div class="app-dev">${escHtml(app.developer)}</div>
+        </div>
+      </div>
+    `,
+          )
+          .join("");
+      }
+
+      async function loadApp(id) {
+        document
+          .querySelectorAll(".app-item")
+          .forEach((el) => el.classList.remove("active"));
+        const item = document.getElementById(`item-${id}`);
+        if (item) item.classList.add("active");
+
+        const panel = document.getElementById("main-panel");
+        panel.innerHTML =
+          '<div style="padding-top:4rem;text-align:center;color:var(--muted)"><span class="spinner"></span> Loading…</div>';
+
+        try {
+          const [appRes, ratingsRes] = await Promise.all([
+            fetch(`${API}/app/${id}`).then((r) => r.json()),
+            fetch(`${API}/ratings/${id}`).then((r) => r.json()),
+          ]);
+          if (appRes.error) throw new Error(appRes.error);
+          currentApp = appRes;
+          currentPage = 1;
+          currentSort = "recent";
+          renderAppDetail(appRes, ratingsRes);
+          loadReviews(id, 1, currentSort);
+        } catch (e) {
+          panel.innerHTML = `<div class="error-msg" style="margin:2rem">${e.message}</div>`;
+        }
+      }
+
+      function renderAppDetail(app, ratings) {
+        const panel = document.getElementById("main-panel");
+        const stars = starStr(Math.round(app.score || 0));
+        panel.innerHTML = `
+      <div class="app-header">
+        <img src="${app.icon}" alt="" />
+        <div>
+          <div class="app-title">${escHtml(app.title)}</div>
+          <div class="app-subtitle">${escHtml(app.developer)} · ${escHtml(app.primaryGenreName || "")}</div>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Rating</div>
+          <div class="stat-value accent">${(app.score || 0).toFixed(1)}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Reviews</div>
+          <div class="stat-value">${fmtNum(app.reviews || 0)}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Version</div>
+          <div class="stat-value" style="font-size:1rem">${escHtml(app.version || "—")}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Price</div>
+          <div class="stat-value">${app.free ? "Free" : "£" + (app.price || 0)}</div>
+        </div>
+      </div>
+
+      ${ratings && !ratings.error ? renderRatingBars(ratings) : ""}
+
+      <div class="tabs" style="margin-top:1.5rem">
+        <button class="tab active" onclick="showTab('reviews')">Reviews</button>
+        <button class="tab" onclick="showTab('info')">App Info</button>
+      </div>
+
+      <div id="tab-reviews">
+        <div class="reviews-controls">
+          <span style="font-size:0.85rem;color:var(--muted)">Showing page <span id="page-display">1</span></span>
+          <a href="${API}/export/${app.id}" class="btn-primary" style="text-decoration:none;padding:0.4rem 0.75rem;display:inline-flex;align-items:center;gap:6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12V16.2C21 17.8802 21 18.7202 20.673 19.362C20.3854 19.9265 19.9265 20.3854 19.362 20.673C18.7202 21 17.8802 21 16.2 21H7.8C6.11984 21 5.27976 21 4.63803 20.673C4.07354 20.3854 3.6146 19.9265 3.32698 19.362C3 18.7202 3 17.8802 3 16.2V12M16 7L12 3M12 3L8 7M12 3V15" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            GB Only
+          </a>
+          <button class="btn-primary" id="export-all-btn" onclick="exportAllCountries('${app.id}')" style="padding:0.4rem 0.75rem;display:inline-flex;align-items:center;gap:6px;background:var(--green);color:#000;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12V16.2C21 17.8802 21 18.7202 20.673 19.362C20.3854 19.9265 19.9265 20.3854 19.362 20.673C18.7202 21 17.8802 21 16.2 21H7.8C6.11984 21 5.27976 21 4.63803 20.673C4.07354 20.3854 3.6146 19.9265 3.32698 19.362C3 18.7202 3 17.8802 3 16.2V12M16 7L12 3M12 3L8 7M12 3V15" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            All Countries
+          </button>
+          <select onchange="changeSort(this.value)">
+            <option value="recent">Most Recent</option>
+            <option value="helpful">Most Helpful</option>
+          </select>
+        </div>
+        <div id="reviews-container">
+          <div style="color:var(--muted);font-size:0.85rem"><span class="spinner"></span> Loading reviews…</div>
+        </div>
+        <div class="pagination" id="pagination"></div>
+      </div>
+
+      <div id="tab-info" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;font-size:0.875rem">
+          ${infoRow("App ID", app.id)}
+          ${infoRow("Bundle ID", app.appId)}
+          ${infoRow("Language", (app.languages || []).slice(0, 3).join(", "))}
+          ${infoRow("Min OS", app.requiredOsVersion)}
+          ${infoRow("Size", app.size ? (app.size / 1e6).toFixed(1) + " MB" : "—")}
+          ${infoRow("Released", app.released ? app.released.substring(0, 10) : "—")}
+          ${infoRow("Updated", app.updated ? new Date(app.updated).toISOString().substring(0, 10) : "—")}
+          ${infoRow("Content Rating", app.contentRating)}
+        </div>
+        <div style="margin-top:1.5rem">
+          <div class="section-label">Description</div>
+          <p style="font-size:0.85rem;color:var(--muted);line-height:1.7;white-space:pre-wrap;margin-top:0.5rem">${escHtml((app.description || "").substring(0, 600))}${(app.description || "").length > 600 ? "…" : ""}</p>
+        </div>
+      </div>
+    `;
+      }
+
+      function renderRatingBars(ratings) {
+        const total = ratings.ratings || 1;
+        const bars = [5, 4, 3, 2, 1]
+          .map((n) => {
+            const count = ratings[`histogram`]?.[n] || 0;
+            const pct = Math.round((count / total) * 100);
+            return `<div class="rating-bar-row">
+        <span class="bar-label">${n}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+        <span class="bar-count">${fmtNum(count)}</span>
+      </div>`;
+          })
+          .join("");
+        return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.5rem">
+      <div class="section-label" style="margin-bottom:0.75rem">Rating Breakdown</div>
+      ${bars}
+    </div>`;
+      }
+
+      function infoRow(label, value) {
+        return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:0.75rem">
+      <div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.25rem">${label}</div>
+      <div style="font-size:0.85rem">${escHtml(String(value || "—"))}</div>
+    </div>`;
+      }
+
+      async function loadReviews(id, page, sort) {
+        const container = document.getElementById("reviews-container");
+        if (!container) return;
+        container.innerHTML =
+          '<div style="color:var(--muted);font-size:0.85rem"><span class="spinner"></span> Loading reviews…</div>';
+        try {
+          const res = await fetch(
+            `${API}/reviews/${id}?page=${page}&sort=${sort}`,
+          );
+          const data = await res.json();
+          if (data.error) throw new Error(data.error);
+          renderReviews(data);
+          document.getElementById("page-display").textContent = page;
+          renderPagination(id, page, data.length);
+        } catch (e) {
+          container.innerHTML = `<div class="error-msg">${e.message}</div>`;
+        }
+      }
+
+      function renderReviews(reviews) {
+        const container = document.getElementById("reviews-container");
+        if (!reviews.length) {
+          container.innerHTML =
+            '<p style="color:var(--muted);font-size:0.85rem">No reviews on this page.</p>';
+          return;
+        }
+        container.innerHTML = `<div class="reviews-list">${reviews
+          .map(
+            (r) => `
+      <div class="review-card">
+        <div class="review-header">
+          <div>
+            <span class="reviewer">${escHtml(r.userName || "Anonymous")}</span>
+            ${r.version ? `<span class="version-badge" style="margin-left:8px">v${escHtml(r.version)}</span>` : ""}
+          </div>
+          <span class="review-date">${r.date ? new Date(r.date).toLocaleDateString("en-GB") : ""}</span>
+        </div>
+        <div class="stars">${starStr(r.score || 0)}</div>
+        ${r.title ? `<div class="review-title">${escHtml(r.title)}</div>` : ""}
+        <div class="review-body">${escHtml(r.text || "")}</div>
+      </div>
+    `,
+          )
+          .join("")}</div>`;
+      }
+
+      function renderPagination(id, page, count) {
+        const pg = document.getElementById("pagination");
+        if (!pg) return;
+        pg.innerHTML = `
+      ${page > 1 ? `<button class="btn-ghost" onclick="changePage(${page - 1})">← Prev</button>` : ""}
+      <span class="page-info">Page ${page}</span>
+      ${count >= 10 ? `<button class="btn-ghost" onclick="changePage(${page + 1})">Next →</button>` : ""}
+    `;
+      }
+
+      function changePage(page) {
+        currentPage = page;
+        if (currentApp) loadReviews(currentApp.id, page, currentSort);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      function changeSort(sort) {
+        currentSort = sort;
+        currentPage = 1;
+        if (currentApp) loadReviews(currentApp.id, 1, sort);
+      }
+
+      function showTab(tab) {
+        document.getElementById("tab-reviews").style.display =
+          tab === "reviews" ? "" : "none";
+        document.getElementById("tab-info").style.display =
+          tab === "info" ? "" : "none";
+        document.querySelectorAll(".tab").forEach((el, i) => {
+          el.classList.toggle(
+            "active",
+            (i === 0 && tab === "reviews") || (i === 1 && tab === "info"),
+          );
+        });
+      }
+
+      async function exportAllCountries(id) {
+        const btn = document.getElementById("export-all-btn");
+        if (!btn) return;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Fetching 44 countries…';
+        try {
+          const res = await fetch(`${API}/export-all/${id}`);
+          if (!res.ok) throw new Error("Export failed");
+          const blob = await res.blob();
+          const disposition = res.headers.get("Content-Disposition") || "";
+          const match = disposition.match(/filename="([^"]+)"/);
+          const filename = match ? match[1] : "all_reviews.csv";
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = filename;
+          a.click();
+          URL.revokeObjectURL(url);
+        } catch (e) {
+          alert("Export failed: " + e.message);
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V16.2C21 17.8802 21 18.7202 20.673 19.362C20.3854 19.9265 19.9265 20.3854 19.362 20.673C18.7202 21 17.8802 21 16.2 21H7.8C6.11984 21 5.27976 21 4.63803 20.673C4.07354 20.3854 3.6146 19.9265 3.32698 19.362C3 18.7202 3 17.8802 3 16.2V12M16 7L12 3M12 3L8 7M12 3V15" stroke-linecap="round" stroke-linejoin="round"/></svg> All Countries`;
+        }
+      }
+
+      function starStr(score) {
+        return "★".repeat(score) + "☆".repeat(5 - score);
+      }
+
+      function fmtNum(n) {
+        return new Intl.NumberFormat("en-GB").format(n);
+      }
+
+      function escHtml(str) {
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+    </script>
+  </body>
+</html>
