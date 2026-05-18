@@ -68,6 +68,8 @@ const COUNTRIES = [
   "ae", "sa", "tr", "ru",
 ];
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 async function fetchCountryReviews(id, country) {
   const fetchSort = async (sort) => {
     const results = [];
@@ -76,16 +78,16 @@ async function fetchCountryReviews(id, country) {
         const batch = await store.reviews({ id, country, page: p, sort });
         results.push(...batch.map((r) => ({ ...r, country })));
         if (batch.length === 0) break;
+        await sleep(300);
       } catch (_) {
         break;
       }
     }
     return results;
   };
-  const [recent, helpful] = await Promise.all([
-    fetchSort(store.sort.RECENT),
-    fetchSort(store.sort.HELPFUL),
-  ]);
+  const recent = await fetchSort(store.sort.RECENT);
+  await sleep(500);
+  const helpful = await fetchSort(store.sort.HELPFUL);
   return [...recent, ...helpful];
 }
 
@@ -95,15 +97,12 @@ app.get("/api/export-all/:id", async (req, res) => {
     const appName = appDetails.title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
 
     const allRaw = [];
-    const batchSize = 5;
-    for (let i = 0; i < COUNTRIES.length; i += batchSize) {
-      const batch = COUNTRIES.slice(i, i + batchSize);
-      const results = await Promise.allSettled(
-        batch.map((c) => fetchCountryReviews(req.params.id, c))
-      );
-      for (const r of results) {
-        if (r.status === "fulfilled") allRaw.push(...r.value);
-      }
+    for (const country of COUNTRIES) {
+      try {
+        const reviews = await fetchCountryReviews(req.params.id, country);
+        allRaw.push(...reviews);
+      } catch (_) {}
+      await sleep(800);
     }
 
     const seen = new Set();
